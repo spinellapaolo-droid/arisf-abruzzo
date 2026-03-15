@@ -932,78 +932,59 @@ function toggleEye(id){
 // ── Login ─────────────────────────────────────────────────────
 function doLogin(){
   clearMsgs();
-  var em=(document.getElementById("li-em").value||"").trim().toLowerCase();
-  var pw=(document.getElementById("li-pw").value||"");
-  if(!em||!pw){showMsg("li-msg","Compila tutti i campi.","err");return}
-  var users=getU(),user=null;
-  for(var i=0;i<users.length;i++){if(users[i].email===em){user=users[i];break}}
-  if(!user){showMsg("li-msg","Email non trovata. Registrati prima.","err");return}
-  if(user.pw!==hash(pw)){showMsg("li-msg","Password errata.","err");return}
-  var pin=(document.getElementById("li-pin").value||"").trim();
-  if(!pin){showMsg("li-msg","Inserisci il PIN dispositivo.","err");return}
-  if(!user.pin){showMsg("li-msg","Account non ha PIN. Ri-registrati.","err");return}
-  if(user.pin!==hash(pin)){
-    gsCall("log_accesso",{nome:user.nome,email:user.email,device:navigator.userAgent.substring(0,80),esito:"FALLITO - PIN errato"},null);
-    showMsg("li-msg","PIN dispositivo errato. Accesso negato.","err");return
-  }
-  savS({nome:user.nome,email:user.email,ruolo:user.ruolo||"Viewer"});
-  applyWM(user.nome);
-  // Registra log accesso su Google Sheets
-  gsCall("log_accesso", {
-    nome:   user.nome,
-    email:  user.email,
-    device: navigator.userAgent.substring(0,80),
-    esito:  "OK"
-  }, null);
-  show("scr-splash");
+  var em  = (document.getElementById("li-em").value||"").trim().toLowerCase();
+  var pw  = (document.getElementById("li-pw").value||"");
+  var pin = (document.getElementById("li-pin").value||"").trim();
+  if(!em||!pw||!pin){showMsg("li-msg","Compila tutti i campi.","err");return}
+  showMsg("li-msg","Accesso in corso...","ok");
+  gsCall("login",{
+    email:  em,
+    pw:     hash(pw),
+    pin:    hash(pin),
+    device: navigator.userAgent.substring(0,80)
+  },function(data){
+    if(!data||!data.ok){
+      showMsg("li-msg",data?data.msg:"Errore di connessione.","err");return;
+    }
+    var sess={nome:data.nome,email:em,ruolo:data.ruolo||"Viewer"};
+    savS(sess);
+    applyWM(data.nome);
+    // Log accesso
+    gsCall("log_accesso",{nome:data.nome,email:em,device:navigator.userAgent.substring(0,80),esito:"OK"},null);
+    show("scr-splash");
+  });
 }
 
-// ── Registrazione ─────────────────────────────────────────────
 function doRegister(){
   clearMsgs();
-  var nm=(document.getElementById("re-nm").value||"").trim();
-  var em=(document.getElementById("re-em").value||"").trim().toLowerCase();
-  var pw=(document.getElementById("re-pw").value||"");
-  var pw2=(document.getElementById("re-pw2").value||"");
-  var cd=(document.getElementById("re-cd").value||"").trim().toUpperCase();
-  var pin=(document.getElementById("re-pin").value||"").trim();
+  var nm  = (document.getElementById("re-nm").value||"").trim();
+  var em  = (document.getElementById("re-em").value||"").trim().toLowerCase();
+  var pw  = (document.getElementById("re-pw").value||"");
+  var pw2 = (document.getElementById("re-pw2").value||"");
+  var pin = (document.getElementById("re-pin").value||"").trim();
+  var cd  = (document.getElementById("re-cd").value||"").trim().toUpperCase();
 
-  // Validazioni base
   if(!nm){showMsg("re-msg","Inserisci nome e cognome.","err");return}
   if(!em||em.indexOf("@")<0){showMsg("re-msg","Email non valida.","err");return}
   if(pw.length<6){showMsg("re-msg","Password minimo 6 caratteri.","err");return}
   if(pw!==pw2){showMsg("re-msg","Le password non coincidono.","err");return}
-  if(!cd){showMsg("re-msg","Inserisci il codice invito.","err");return}
   if(!pin||pin.length<4){showMsg("re-msg","Inserisci un PIN di almeno 4 cifre.","err");return}
   if(!/^[0-9]+$/.test(pin)){showMsg("re-msg","Il PIN deve contenere solo numeri.","err");return}
+  if(!cd){showMsg("re-msg","Inserisci il codice invito.","err");return}
 
-  // Email gia registrata?
-  var users=getU();
-  for(var i=0;i<users.length;i++){
-    if(users[i].email===em){showMsg("re-msg","Email gia registrata. Accedi.","err");return}
-  }
-
-  // Codici globali — validi su qualsiasi dispositivo senza internet
-  var codiciGlobali=["ARISF2025","ABR-2025","MMG-AQ","MMG-CH","MMG-PE","MMG-TE"];
-  if(codiciGlobali.indexOf(cd)>=0){
-    users.push({nome:nm,email:em,pw:hash(pw),pin:hash(pin),attivo:"SI",ruolo:"Viewer"});
-    savU(users);
-    showMsg("re-msg","Registrazione completata! Ora accedi.","ok");
-    setTimeout(function(){showView("login")},2000);
-    return;
-  }
-
-  // Codice personale — verifica su Google Sheets
-  showMsg("re-msg","Verifica codice in corso...","ok");
-  gsCall("verifica_codice",{codice:cd,email:em},function(data){
+  showMsg("re-msg","Registrazione in corso...","ok");
+  gsCall("registra",{
+    nome:  nm,
+    email: em,
+    pw:    hash(pw),
+    pin:   hash(pin),
+    codice:cd
+  },function(data){
     if(!data||!data.ok){
-      showMsg("re-msg","Codice invito non valido.","err");return;
+      showMsg("re-msg",data?data.msg:"Errore di connessione. Riprova.","err");return;
     }
-    var usersNow=getU();
-    usersNow.push({nome:nm,email:em,pw:hash(pw),pin:hash(pin),attivo:"SI",ruolo:data.ruolo||"Viewer"});
-    savU(usersNow);
     showMsg("re-msg","Registrazione completata! Ora accedi.","ok");
-    setTimeout(function(){showView("login")},2000);
+    setTimeout(function(){showView("login");},2000);
   });
 }
 
