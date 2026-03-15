@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0060)file:///Users/paolospinella/Downloads/ARISF_Abruzzo_v15.html -->
+<!-- saved from url=(0062)file:///Users/paolospinella/Downloads/ARISF_Abruzzo_v16_1.html -->
 <html lang="it"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
@@ -405,7 +405,7 @@ body{font-family:Georgia,serif;min-height:100vh;background:#0A1628}
       <div style="font-weight:800;font-size:17px;color:#0A1628">+ Aggiungi Medico</div>
       <button onclick="chiudiFormMedico()" style="background:#F0F0F0;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px" type="button">✕</button>
     </div>
-    <div style="font-size:12px;color:#90A4AE;margin-bottom:14px;background:#FFF3E0;padding:10px;border-radius:8px;border-left:3px solid #FFB300">
+    <div id="add-info-msg" style="font-size:12px;color:#90A4AE;margin-bottom:14px;background:#FFF3E0;padding:10px;border-radius:8px;border-left:3px solid #FFB300">
       📌 La richiesta viene inviata per approvazione. Il medico appare nell'app solo dopo l'ok.
     </div>
     <div id="add-msg" style="display:none;font-size:12px;padding:10px;border-radius:8px;margin-bottom:12px"></div>
@@ -1366,6 +1366,25 @@ function apriFormMedico(){
     } else {
       btnInvia.textContent="Invia Richiesta →";
       btnInvia.style.background="#1565C0";
+    }
+  }
+
+  // Aggiorna messaggio in base al ruolo
+  var infoMsg = document.getElementById("add-info-msg");
+  if(infoMsg){
+    var sess3=getS();
+    var isAdm3  = sess3 && (ADMIN_EMAILS.indexOf((sess3.email||"").toLowerCase())>=0);
+    var isEd3   = sess3 && (sess3.ruolo==="Editor");
+    if(isAdm3||isEd3){
+      infoMsg.style.background="rgba(46,125,50,.1)";
+      infoMsg.style.borderLeft="3px solid #2E7D32";
+      infoMsg.style.color="#2E7D32";
+      infoMsg.innerHTML="&#9989; Sei autorizzato ad inserire medici direttamente. Il medico apparira subito nell&#39;app.";
+    } else {
+      infoMsg.style.background="#FFF3E0";
+      infoMsg.style.borderLeft="3px solid #FFB300";
+      infoMsg.style.color="#90A4AE";
+      infoMsg.innerHTML="&#128204; La richiesta viene inviata per approvazione. Il medico appare nell&#39;app solo dopo l&#39;ok.";
     }
   }
 
